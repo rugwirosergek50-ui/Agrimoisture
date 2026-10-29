@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#00624c">
+  <title>AgriMoisture | Soil-Water Monitoring</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="AgriMoisture home" data-home>
+        <span class="brand-mark" aria-hidden="true">✿</span>
+        <span><strong>AgriMoisture</strong><small>Soil-water monitoring</small></span>
+      </a>
+      <div class="location"><span aria-hidden="true">⌖</span><span id="locationLabel">Eastern Province, Rwanda</span></div>
+      <div class="top-actions">
+        <label class="sr-only" for="languageSelect">Select interface language</label>
+        <select id="languageSelect" aria-label="Select interface language">
+          <option value="en">English</option>
+          <option value="rw">Ikinyarwanda</option>
+        </select>
+        <div class="profile"><span class="avatar" aria-hidden="true">♙</span><span>Farmer view</span></div>
+      </div>
+    </header>
+
+    <div class="layout">
+      <nav class="sidebar" aria-label="Main navigation">
+        <button class="nav-btn active" data-view="overview"><span class="ico">⌂</span><span>Overview<small>Ubusobanuro rusange</small></span></button>
+        <button class="nav-btn" data-view="addfield"><span class="ico">⌖</span><span>Add Field Coordinates<small>Ongeramo umurima</small></span></button>
+        <button class="nav-btn" data-view="mapview"><span class="ico">▧</span><span>Soil Moisture Map<small>Ishusho y'ubushuhe</small></span></button>
+        <button class="nav-btn" data-view="advice"><span class="ico">❧</span><span>Farm Advice &amp; Crops<small>Inama n'ibihingwa</small></span></button>
+        <button class="nav-btn" data-view="farmerhub"><span class="ico">♙</span><span>Farmer Hub<small>Abahinzi</small></span></button>
+        <button class="nav-btn" data-view="verification"><span class="ico">☑</span><span>Field Verification<small>Kugenzura umurima</small></span></button>
+        <div class="sidebar-note">🌱 <b>Better information. Higher yields.</b><br>A greener Eastern Rwanda.</div>
+      </nav>
+
+      <main class="main">
+        <div id="error" class="error" role="alert" hidden></div>
+        <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+        <section class="view active" id="overview">
+          <div class="page-head">
+            <div><h1>Rwanda Fields Overview</h1><p>Soil-water status and practical guidance for your registered fields.</p></div>
+            <div class="overview-controls">
+              <label for="overviewFieldSelect">My registered fields</label>
+              <select id="overviewFieldSelect" aria-label="Choose a saved field"></select>
+              <span class="pill">● Demo dashboard</span>
+            </div>
+          </div>
+          <div class="grid stats">
+            <article class="card stat"><div class="stat-icon">💧</div><div><label>Root-zone soil moisture</label><strong id="overviewMoisture">—</strong><span class="pill" id="moistureLabel">Loading</span><br><small>Synthetic model estimate</small></div></article>
+            <article class="card stat"><div class="stat-icon">🛡️</div><div><label>Model confidence</label><strong>Illustrative</strong><small>No validated confidence score</small></div></article>
+            <article class="card stat"><div class="stat-icon">🛰️</div><div><label>Data status</label><strong class="stat-status">Sample data</strong><small>Not live satellite observations</small></div></article>
+            <article class="card stat"><div class="stat-icon">🌿</div><div><label>Selected field</label><strong id="overviewField">No saved fields yet</strong><small id="overviewDistrict">Add a field to see it here.</small></div></article>
+          </div>
+          <div class="content-grid">
+            <article class="card map-card">
+              <div class="map-toolbar"><b>🌱 Field Map / Ishusho y'umurima</b><button class="toolbar-btn" type="button" data-go="mapview">Open map layers ↗</button></div>
+              <div id="overviewMap" class="map overview-map" role="img" aria-label="Map showing the selected field"></div>
+            </article>
+            <article class="card advice-card">
+              <div class="section-title">🌱 Farm Advice &amp; Crops <span class="pill">Field-based</span></div>
+              <div class="section-body">
+                <div class="advice-banner"><strong id="overviewRecommendation">Check field conditions before planting.</strong><p>Use soil and weather information alongside local agronomic advice before making a decision.</p></div>
+                <div class="mini-list">
+                  <div class="mini-item"><span class="check">✓</span><div><b>Check field conditions</b><small>Look for water stress or waterlogging before planting.</small></div></div>
+                  <div class="mini-item"><span class="check">✓</span><div><b>Compare soil layers</b><small>SAR, TOTRAM, OPTRAM and PAWC describe different conditions.</small></div></div>
+                  <div class="mini-item"><span class="check">✓</span><div><b>Confirm locally</b><small>Use field observations and extension-worker guidance.</small></div></div>
+                </div>
+                <div class="btn-row"><button class="btn" type="button" data-go="advice">View crop advice</button><button class="btn secondary" type="button" data-go="farmerhub">Open Farmer Hub</button></div>
+              </div>
+            </article>
+          </div>
+          <div class="grid quick-grid">
+            <article class="card quick"><h2>💧 Soil moisture</h2><strong id="quickMoisture">—</strong><p>Illustrative estimate</p></article>
+            <article class="card quick"><h2>🟤 Soil water availability</h2><strong>Medium</strong><p>PAWC indicator · sample data</p></article>
+            <article class="card quick"><h2>🗓️ Planting calendar</h2><strong>Check season</strong><p>Confirm with local extension guidance</p></article>
+            <article class="card quick"><h2>🌽 Crop suitability</h2><strong>Needs checking</strong><p>Example only; validate for the field</p></article>
+          </div>
+        </section>
+
+        <section class="view" id="mapview">
+          <div class="page-head"><div><h1>Soil Moisture Map</h1><p>Switch between complementary soil-moisture and soil-water layers for each saved field.</p></div><span class="pill">4 data layers</span></div>
+          <article class="card">
+            <div class="map-toolbar"><b>🗺️ Field Map / Ishusho y'umurima</b><div class="toolbar-actions"><label class="sr-only" for="fieldSelect">Choose field</label><select id="fieldSelect"></select><button class="toolbar-btn" type="button" data-go="addfield">＋ Add field</button></div></div>
+            <div class="map-layout">
+              <div id="mainMap" class="map main-map" role="img" aria-label="Earth Engine map showing the selected field layer"></div>
+              <aside class="map-panel">
+                <h2>Map Layers / Ubwoko bw'amakuru</h2>
+                <label class="layer-option selected"><input type="radio" name="layer" value="sar" checked><span class="layer-icon">📡</span><span><b>Sentinel-1 SAR</b><small>Median VV radar backscatter</small></span></label>
+                <label class="layer-option"><input type="radio" name="layer" value="totram"><span class="layer-icon">🌿</span><span><b>TOTRAM thermal proxy</b><small>Relative Landsat surface temperature</small></span></label>
+                <label class="layer-option"><input type="radio" name="layer" value="optram"><span class="layer-icon">🍃</span><span><b>OPTRAM SWIR proxy</b><small>Relative NDVI-filtered SWIR transform</small></span></label>
+                <label class="layer-option"><input type="radio" name="layer" value="pawc"><span class="layer-icon">🟫</span><span><b>PAWC estimate</b><small>Texture-based plant-available water capacity</small></span></label>
+                <div class="legend"><b id="legendTitle">Sentinel-1 SAR (VV backscatter)</b><div class="legend-bar" id="legendBar"></div><div class="legend-labels"><span>−25 dB</span><span>−19 dB</span><span>−13 dB</span><span>−6 dB</span><span>0 dB</span></div><p class="note" id="layerDescription">Earth Engine imagery and soil estimates for the selected field.</p></div>
+                <div class="layer-stats" aria-live="polite">
+                  <div class="layer-stat"><span>Mean</span><strong id="layerMean">—</strong></div>
+                  <div class="layer-stat"><span>Min</span><strong id="layerMin">—</strong></div>
+                  <div class="layer-stat"><span>Max</span><strong id="layerMax">—</strong></div>
+                  <div class="layer-stat"><span>Std dev</span><strong id="layerStd">—</strong></div>
+                  <div class="layer-stat"><span>Source</span><strong id="layerSource">—</strong></div>
+                </div>
+                <div class="help"><b>How to interpret these layers</b><br>SAR shows radar backscatter. TOTRAM and OPTRAM are relative, uncalibrated proxies; PAWC is a texture-based estimate of soil water capacity, not current moisture. Validate estimates locally.</div>
+              </aside>
+            </div>
+          </article>
+        </section>
+
+        <section class="view" id="verification">
+          <div class="page-head"><div><h1>Field Verification</h1><p>Record field observations to help check model estimates.</p></div><span class="pill">Field observations</span></div>
+          <div class="two-col">
+            <article class="card"><div class="section-title">New field check</div><div class="section-body">
+              <form id="verifyForm" class="form-grid">
+                <div class="field full"><label for="verifyField">Field</label><select id="verifyField"></select></div>
+                <div class="field"><label for="feedbackCategory">Feedback type</label><select id="feedbackCategory"><option value="moisture_accuracy">Moisture estimate accuracy</option><option value="crop_advice">Crop advice</option><option value="feature_request">Feature request</option><option value="bug_report">Report a problem</option></select></div>
+                <div class="field"><label for="soilFeel">Observed soil condition</label><select id="soilFeel"><option value="accurate">Similar to the map</option><option value="drier_than_map">Drier than the map</option><option value="wetter_than_map">Wetter than the map</option><option value="flooded">Flooded / waterlogged</option><option value="">Not sure / not applicable</option></select></div>
+                <div class="field"><label for="cropStage">Crop / growth stage</label><select id="cropStage"><option>Not planted</option><option>Recently planted</option><option>Growing</option><option>Near harvest</option></select></div>
+                <div class="field"><label for="feedbackRating">Rating (optional)</label><select id="feedbackRating"><option value="">No rating</option><option value="1">1 — Poor</option><option value="2">2 — Fair</option><option value="3">3 — Good</option><option value="4">4 — Very good</option><option value="5">5 — Excellent</option></select></div>
+                <div class="field full"><label for="verifyNotes">Comments</label><textarea id="verifyNotes" rows="3" maxlength="1500" required placeholder="Describe what you observed or suggest an improvement..."></textarea></div>
+                <div class="field full"><button class="btn" type="submit">Submit feedback</button></div>
+              </form>
+            </div></article>
+            <article class="card"><div class="section-title">Why verify?</div><div class="section-body"><div class="mini-list">
+              <div class="mini-item"><span class="check">1</span><div><b>Compare estimates with reality</b><small>Record soil conditions observed directly in the field.</small></div></div>
+              <div class="mini-item"><span class="check">2</span><div><b>Improve confidence</b><small>Repeated observations help evaluate model performance over time.</small></div></div>
+              <div class="mini-item"><span class="check">3</span><div><b>Share with an extension worker</b><small>Use notes to support practical decisions and follow-up.</small></div></div>
+            </div><p class="note">Feedback is stored in the app's SQLite database. Admin access is required to review submitted comments.</p></div></article>
+          </div>
+          <article class="card observations-card"><div class="section-title">Recent submissions</div><div class="section-body" id="observations"><p class="note">Your submission appears here after it is saved. Admin access is required to view the full feedback history.</p></div></article>
+        </section>
+
+        <section class="view" id="addfield">
+          <div class="page-head"><div><h1>Add Field Coordinates</h1><p>Register a point or draw a field boundary. Point entries are kept in this page session; polygon fields stay in server memory until restart.</p></div></div>
+          <div class="two-col">
+            <article class="card"><div class="section-title">Field details</div><div class="section-body">
+              <div class="mode-tabs" role="tablist" aria-label="Field geometry type">
+                <button class="mode-tab active" type="button" role="tab" aria-selected="true" aria-controls="point-panel" data-mode="point">Point</button>
+                <button class="mode-tab" type="button" role="tab" aria-selected="false" aria-controls="polygon-panel" data-mode="polygon">Polygon</button>
+              </div>
+              <form id="fieldForm" class="form-grid">
+                <div id="point-panel" class="mode-panel form-grid" role="tabpanel">
+                  <div class="field full"><label for="fieldName">Field name</label><input id="fieldName" required placeholder="e.g. My maize field"></div>
+                  <div class="field"><label for="latitude">Latitude (decimal degrees)</label><input id="latitude" type="number" step="any" required placeholder="-1.9400"></div>
+                  <div class="field"><label for="longitude">Longitude (decimal degrees)</label><input id="longitude" type="number" step="any" required placeholder="30.1000"></div>
+                  <div class="field"><label for="district">District</label><select id="district"><option value="Kayonza">Kayonza</option><option value="Bugesera">Bugesera</option><option value="Gatsibo">Gatsibo</option><option value="Kirehe">Kirehe</option><option value="Ngoma">Ngoma</option><option value="Nyagatare">Nyagatare</option><option value="Rwamagana">Rwamagana</option></select></div>
+                  <div class="field"><label for="fieldCrop">Main crop</label><select id="fieldCrop"><option value="Maize">Maize</option><option value="Beans">Beans</option><option value="Sorghum">Sorghum</option><option value="Rice">Rice</option><option value="Banana">Banana</option><option value="Cassava">Cassava</option><option value="Other / not selected">Other / not selected</option></select></div>
+                  <div class="field full"><button class="btn" type="submit">＋ Save field</button></div>
+                </div>
+              </form>
+              <div class="form-grid field-period">
+                <div class="field"><label for="fieldYear">Year</label><input id="fieldYear" type="number" min="1900" max="2100" step="1" required></div>
+                <div class="field"><label for="fieldMonth">Month</label><select id="fieldMonth" required>
+                  <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+                  <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+                  <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+                  <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                </select></div>
+              </div>
+              <div id="polygon-panel" class="mode-panel polygon-panel" role="tabpanel" hidden>
+                <div class="field"><label for="polygonName">Field name</label><input id="polygonName" maxlength="120" placeholder="e.g. My maize field"></div>
+                <p class="hint">Click the map to add boundary points. Drag pins to adjust them. Add at least three points to define the field.</p>
+                <div id="polygonMap" class="map drawing-map" role="application" aria-label="Click to draw a field boundary"></div>
+                <div class="fmt-toggle" role="group" aria-label="Coordinate format">
+                  <button class="fmt active" type="button" data-fmt="dec" aria-pressed="true">Decimal</button>
+                  <button class="fmt" type="button" data-fmt="dms" aria-pressed="false">Deg/Min/Sec</button>
+                </div>
+                <ul id="vertex-list" aria-label="Polygon vertices"></ul>
+                <p id="poly-info" class="polygon-info" aria-live="polite">0 points. Need at least 3.</p>
+                <div class="btn-row polygon-actions">
+                  <button id="poly-undo" class="btn secondary" type="button">Undo last</button>
+                  <button id="poly-clear" class="btn secondary" type="button">Clear</button>
+                  <button id="poly-save" class="btn" type="button">＋ Save polygon field</button>
+                </div>
+              </div>
+              <p class="note">Rwanda is approximately between 28.8–30.9° E and 1.0–2.9° S. Accurate field boundaries require a polygon or uploaded boundary file.</p>
+            </div></article>
+            <article class="card"><div class="section-title">Saved fields</div><div class="section-body"><div class="field-list" id="fieldList"></div><div class="help">Selecting a field on the map loads Earth Engine satellite or soil estimates. Weather and rainfall data are not included.</div></div></article>
+          </div>
+        </section>
+
+        <section class="view" id="farmerhub">
+          <div class="page-head"><div><h1>Farmer Hub / Abahinzi</h1><p>Key information for planning and managing your registered field.</p></div><span class="pill">Farmer-friendly summary</span></div>
+          <div class="grid hub-grid">
+            <article class="card hub-card"><div class="stat-icon">💧</div><h2>Current soil moisture</h2><div class="big" id="hubMoisture">—</div><p>Illustrative estimate. Check field conditions before irrigation or planting.</p></article>
+            <article class="card hub-card"><div class="stat-icon">🟤</div><h2>Soil water availability</h2><div class="big">Medium</div><p>PAWC is based on soil properties and indicates water-holding capacity for plants.</p></article>
+            <article class="card hub-card"><div class="stat-icon">🌱</div><h2>Crop suitability</h2><div class="big">Needs checking</div><p>Consider season, soil, seed availability and local advice.</p></article>
+            <article class="card hub-card"><div class="stat-icon">🛰️</div><h2>Satellite information</h2><div class="big">4 layers</div><p>Compare Sentinel-1 SAR, TOTRAM, OPTRAM and PAWC on the map.</p><button class="btn secondary" type="button" data-go="mapview">Open soil map</button></article>
+            <article class="card hub-card"><div class="stat-icon">🗓️</div><h2>Planting calendar</h2><div class="big">Check season</div><p>Planting dates vary by crop and season. Confirm current agricultural guidance.</p></article>
+            <article class="card hub-card"><div class="stat-icon">🧑‍🌾</div><h2>Field verification</h2><div class="big">Your input matters</div><p>Record soil moisture observations to compare with sample estimates.</p><button class="btn secondary" type="button" data-go="verification">Record observation</button></article>
+          </div>
+          <article class="card simple-guide"><div class="section-title">Simple guide / Inama z'ibanze</div><div class="section-body"><div class="mini-list">
+            <div class="mini-item"><span class="check">✓</span><div><b>Before planting</b><small>Check soil moisture, expected rainfall and the recommended planting window.</small></div></div>
+            <div class="mini-item"><span class="check">✓</span><div><b>When soil is very wet</b><small>Avoid working waterlogged fields where this could damage soil structure.</small></div></div>
+            <div class="mini-item"><span class="check">✓</span><div><b>When soil is dry</b><small>Check crop stage and water availability; use locally appropriate water-saving practices.</small></div></div>
+            <div class="mini-item"><span class="check">✓</span><div><b>Use local knowledge</b><small>Satellite products support decisions; they do not replace field inspection or extension advice.</small></div></div>
+          </div></div></article>
+        </section>
+
+        <section class="view" id="advice">
+          <div class="page-head"><div><h1>Farm Advice &amp; Crops</h1><p>General crop-planning checks for your selected field. Confirm timing and practices with local agricultural guidance.</p></div><span class="pill">General guidance</span></div>
+          <article class="card crop-advice-card">
+            <div class="crop-advice-controls">
+              <div class="field">
+                <label for="adviceCropSelect">Crop to explore</label>
+                <select id="adviceCropSelect">
+                  <option value="maize">Maize</option>
+                  <option value="beans">Beans</option>
+                  <option value="sorghum">Sorghum</option>
+                  <option value="rice">Rice</option>
+                  <option value="banana">Banana</option>
+                  <option value="cassava">Cassava</option>
+                  <option value="other">Other / not selected</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="adviceConditionSelect">Observed soil condition</label>
+                <select id="adviceConditionSelect">
+                  <option value="unsure">Not sure / need to check</option>
+                  <option value="dry">Dry</option>
+                  <option value="moist">Moist, not waterlogged</option>
+                  <option value="wet">Very wet / standing water</option>
+                </select>
+              </div>
+              <div class="advice-field-context">
+                <span>Selected field</span>
+                <strong id="adviceFieldName">Kayonza Field</strong>
+                <small id="adviceFieldDistrict">Kayonza District</small>
+              </div>
+            </div>
+            <div id="cropAdviceGuide" class="crop-guide" aria-live="polite"></div>
+            <section class="condition-advice" aria-live="polite">
+              <h2>Next step based on your observation</h2>
+              <p id="conditionAdviceText"></p>
+            </section>
+            <div class="help">This is general planning information, not a crop-suitability score or a fertilizer prescription. Map estimates do not replace field inspection, a local planting calendar, or advice from an agricultural extension worker.</div>
+          </article>
+          <article class="card crop-catalog-card">
+            <div class="crop-catalog-heading">
+              <div>
+                <h2>Browse crop guides</h2>
+                <p>Compare general field checks. These are not crop suitability rankings.</p>
+              </div>
+              <div class="crop-view-toggle" role="group" aria-label="Crop guide layout">
+                <button type="button" class="active" id="cropCardsButton" aria-pressed="true">Cards</button>
+                <button type="button" id="cropTableButton" aria-pressed="false">Table</button>
+              </div>
+            </div>
+            <div id="cropCatalog" class="crop-catalog-grid"></div>
+          </article>
+          <div class="two-col advice-columns">
+            <article class="card"><div class="section-title">What should I check?</div><div class="section-body"><div class="mini-list">
+              <div class="mini-item"><span class="check">✓</span><div><b>Inspect soil conditions</b><small>Check whether soil is dry, suitably moist or waterlogged.</small></div></div>
+              <div class="mini-item"><span class="check">✓</span><div><b>Compare map layers carefully</b><small>Look for patterns, but remember that the layers use different methods and are not direct field measurements.</small></div></div>
+              <div class="mini-item"><span class="check">✓</span><div><b>Plan around the season</b><small>Use an official forecast and local planting calendar before sowing.</small></div></div>
+              <div class="mini-item"><span class="check">✓</span><div><b>Ask an extension worker if uncertain</b><small>Especially before changing irrigation, fertilizer or planting decisions.</small></div></div>
+            </div></div></article>
+            <article class="card"><div class="section-title">Using map information</div><div class="section-body"><div class="mini-list">
+              <div class="mini-item"><span class="check">1</span><div><b>Check what each layer measures</b><small>SAR and optical layers are indicators; they are not direct measurements of soil moisture.</small></div></div>
+              <div class="mini-item"><span class="check">2</span><div><b>Read PAWC as soil capacity</b><small>PAWC estimates how much plant-available water soil can hold, not how wet it is today.</small></div></div>
+              <div class="mini-item"><span class="check">3</span><div><b>Verify conditions in the field</b><small>Compare map patterns with your soil, crop stage and recent local conditions.</small></div></div>
+              <div class="mini-item"><span class="check">4</span><div><b>Confirm decisions locally</b><small>Use trusted agricultural guidance for planting dates and input use.</small></div></div>
+            </div></div></article>
+          </div>
+        </section>
+
+        <footer class="footer-note">AgriMoisture prototype · Map layers use Earth Engine satellite and soil estimates for the selected field. Relative optical indices and texture-based PAWC need local validation. Crop advice remains illustrative.</footer>
+      </main>
+    </div>
+  </div>
+  <div class="advice-chat">
+    <button class="advice-chat-toggle" id="adviceChatToggle" type="button" aria-expanded="false" aria-controls="adviceChatPanel">
+      <span aria-hidden="true">💬</span> <span>Ask AgriMoisture</span>
+    </button>
+    <section class="advice-chat-panel" id="adviceChatPanel" aria-label="AgriMoisture advice assistant" hidden>
+      <div class="advice-chat-header">
+        <div><strong>AgriMoisture Assistant</strong><small>AI assistance via Google Gemini · Questions are sent to Google</small></div>
+        <button id="adviceChatClose" type="button" aria-label="Close assistant">×</button>
+      </div>
+      <div class="advice-chat-log" id="adviceChatLog" role="log" aria-live="polite">
+        <p class="advice-chat-message bot">Hello! Ask me for general crop-planning or field-check guidance. I don't have live field or weather data. AI replies are generated by Google Gemini, and your questions are sent to Google.</p>
+      </div>
+      <div class="advice-chat-prompts">
+        <button type="button" data-prompt-en="What should I check before planting maize?" data-prompt-rw="Ni iki ngomba kugenzura mbere yo gutera ibigori?">Maize planting checks</button>
+        <button type="button" data-prompt-en="What should I check before planting cassava?" data-prompt-rw="Ni iki ngomba kugenzura mbere yo gutera imyumbati?">Cassava planting checks</button>
+        <button type="button" data-prompt-en="How should I check soil moisture?" data-prompt-rw="Nagenzura nte ubushuhe bw'ubutaka?">Soil moisture checks</button>
+        <button type="button" data-prompt-en="Can you recommend fertilizer rates?" data-prompt-rw="Wampa ingano y'ifumbire ngomba gukoresha?">Fertilizer guidance</button>
+      </div>
+      <form class="advice-chat-form" id="adviceChatForm">
+        <label class="sr-only" for="adviceChatInput">Ask a question</label>
+        <input id="adviceChatInput" type="text" maxlength="500" autocomplete="off" placeholder="Ask a question..." required>
+        <button type="submit">Send</button>
+      </form>
+    </section>
+  </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
+  <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+  <script src="{{ url_for('static', filename='dashboard.js') }}" defer></script>
+</body>
+</html>

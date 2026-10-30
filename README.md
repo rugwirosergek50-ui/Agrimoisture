@@ -1,3 +1,7 @@
+demo video
+![demo](https://drive.google.com/file/d/1k87v1qQ4YNRaxq4NZAspc4U87KoYe9cE/view?usp=sharing)
+
+
 # 🌱 AgriMoisture
 
 **Soil-water monitoring and agricultural decision support for farmers in Eastern Rwanda.**

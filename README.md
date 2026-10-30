@@ -1,5 +1,4 @@
 demo video
-![demo](https://drive.google.com/file/d/1k87v1qQ4YNRaxq4NZAspc4U87KoYe9cE/view?usp=sharing)
 
 
 # 🌱 AgriMoisture
@@ -12,6 +11,7 @@ demo video
 ![Status](https://img.shields.io/badge/status-prototype-orange)
 
 🌐 **Live demo:** https://agrimoisture.onrender.com/
+** video demo: ** https://drive.google.com/file/d/1k87v1qQ4YNRaxq4NZAspc4U87KoYe9cE/view?usp=sharing
 
 ---
 
